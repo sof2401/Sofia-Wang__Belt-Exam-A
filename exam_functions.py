@@ -79,3 +79,59 @@ def get_ngram_measures_finder(tokens, ngrams=2, measure='raw_freq', top_n=None, 
     else:
         return df_ngrams
 
+def make_custom_nlp(
+    disable=["ner"],
+    contractions=["don't", "can't", "couldn't", "you'd", "I'll"],
+    stopwords_to_add=[],
+    stopwords_to_remove=[],
+    spacy_model = "en_core_web_sm"
+):
+    """Returns a custom spacy nlp pipeline.
+    
+    Args:
+        disable (list, optional): Names of pipe components to disable. Defaults to ["ner"].
+        contractions (list, optional): List of contractions to add as special cases. Defaults to ["don't", "can't", "couldn't", "you'd", "I'll"].
+        stopwords_to_add(list, optional): List of words to set as stopwords (word.is_stop=True)
+        stopwords_to_remove(list, optional): List of words to remove from stopwords (word.is_stop=False)
+        spacy_model(string, optional): String to select a spacy language model. (Defaults to "en_core_web_sm".)
+                            Additional Options:  "en_core_web_md", "en_core_web_lg"; 
+                            (Must first download the model by name in the terminal:
+                            e.g.  "python -m spacy download en_core_web_lg" )
+            
+    Returns:
+        nlp pipeline: spacy pipeline with special cases and updated nlp.Default.stopwords
+    """
+    # Load the English NLP model
+    nlp = spacy.load(spacy_model, disable=disable)
+    
+    # Adding Special Cases 
+    # Loop through the contractions list and add special cases
+    for contraction in contractions:
+        special_case = [{"ORTH": contraction}]
+        nlp.tokenizer.add_special_case(contraction, special_case)
+    
+    # Adding stopwords
+    for word in stopwords_to_add:
+        # Set the is_stop attribute for the word in the vocab dict to true.
+        nlp.vocab[
+            word
+        ].is_stop = True  # this determines spacy's treatmean of the word as a stop word
+        # Add the word to the list of stopwords (for easily tracking stopwords)
+        nlp.Defaults.stop_words.add(word)
+    
+    # Removing Stopwords
+    for word in stopwords_to_remove:
+        
+        # Ensure the words are not recognized as stopwords
+        nlp.vocab[word].is_stop = False
+        nlp.Defaults.stop_words.discard(word)
+        
+    return nlp
+
+import spacy
+nlp = spacy.load("en_core_web_sm", disable=['parser','ner'])
+
+def lemmatize(text):
+    doc = nlp(text)
+    lemmatized_text = [token.lemma_ for token in doc if not token.is_stop and not token.is_punct]
+    return lemmatized_text
